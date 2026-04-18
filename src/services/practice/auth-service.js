@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import * as env from '../config/env.js';
-import * as userRepo from "../repositories/user-repository.js"
-import * as error from "../errors/error.js"
+import * as env from '../../config/env.js';
+import * as userRepo from "../../repositories/practice/user-repository.js"
+import * as error from "../../errors/error.js"
 
 export const generateTokenForUser = (authCode) => {
     console.log(`เตรียมยิง API ด้วย Client ID: ${env.EVENTPOP_CLIENT_ID}`);

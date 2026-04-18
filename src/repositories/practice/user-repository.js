@@ -1,4 +1,4 @@
-import { mockUsers, mockRefreshTokens } from "../config/db.js";
+import { mockUsers, mockRefreshTokens } from "../../config/db.js";
 
 export const findUserByUsername = (username) => {
     return mockUsers.find(user => user.username === username)

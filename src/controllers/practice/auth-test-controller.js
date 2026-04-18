@@ -1,5 +1,5 @@
-import * as authService from '../services/auth-service.js';
-import * as env from '../config/env.js';
+import * as authService from '../../services/practice/auth-service.js';
+import * as env from '../../config/env.js';
 
 export const loginRedirect = (req, res) => {
     console.log("Redirecting user to Login...");
