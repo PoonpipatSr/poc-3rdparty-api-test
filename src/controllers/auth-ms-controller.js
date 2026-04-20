@@ -17,17 +17,27 @@ export const microsoftCallback = async (req, res) => {
 
         const token = await authMsService.microsoftLogin(authCode);
         
-        res.json({
-            message: "Login Success via Microsoft",
-            accessToken: token
-        })
+        // res.json({
+        //     message: "Login Success via Microsoft",
+        //     accessToken: token
+        // })
+        res.redirect(`http://localhost:5500/?token=${token}`);
     } catch (err) {
         console.log(err);
-        if (err.response) {
-            console.error("Microsoft Error Data:", err.response.data);
-        } else {
-            console.error(err);
-        }
-        res.status(401).json({ error: err.message })
+        // if (err.response) {
+        //     console.error("Microsoft Error Data:", err.response.data);
+        // } else {
+        //     console.error(err);
+        // }
+        // res.status(401).json({ error: err.message })
+        res.redirect(`http://localhost:5500/?error=${encodeURIComponent(err.message)}`);
     }
 }
+
+export const getSecureData = (req, res) => {
+    res.json({ 
+        message: "Hello, Welcome to webcam Angry bird 67 eighteen++",
+        secretData: `Angry bird 67 gooning for you Mr.${req.user.studentId}.`,
+        userData: req.user 
+    });
+};

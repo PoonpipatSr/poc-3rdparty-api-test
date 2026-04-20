@@ -21,10 +21,15 @@ export const getAccessTokenFromCode = async (authMSCode) => {
 
 export const getMicrosoftProfile = async (accessMSToken) => {
     const response = await axios.get('https://graph.microsoft.com/v1.0/me', {
+        params: {
+            '$select': 'displayName,onPremisesSamAccountName,mail'
+        },
         headers: {
             Authorization: `Bearer ${accessMSToken}`
         }
-    })
+    });
 
+    // console.log(response.params);
+    
     return response.data;
 }

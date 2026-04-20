@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIT KMUTT - POC SSO</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 400px; text-align: center; }
+        .logo { width: 80px; margin-bottom: 20px; }
+        h2 { margin: 0 0 10px 0; color: #1f2937; }
+        p { color: #6b7280; font-size: 14px; margin-bottom: 30px; }
+        .btn { background-color: #0078d4; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 88%; transition: background 0.2s; text-decoration: none; }
+        .btn:hover { background-color: #005a9e; }
+        .btn img { width: 20px; margin-right: 10px; }
+        
+        /* Dashboard Styles */
+        .dashboard { display: none; text-align: left; }
+        .info-box { background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 15px; word-break: break-all; }
+        .label { font-weight: bold; color: #374151; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .value { color: #111827; font-size: 16px; font-weight: 500; }
+        .token-text { font-family: monospace; font-size: 11px; color: #6b7280; }
+        .logout-btn { background-color: #ef4444; margin-top: 10px; width: 100%;}
+        .fetch-btn { background-color: #4455ef; margin-top: 10px; width: 100%;}
+        .logout-btn:hover { background-color: #dc2626; }
+        .error-msg { color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 6px; margin-bottom: 20px; display: none; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div id="loginView">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="MS Logo" style="width: 50px; margin-bottom: 15px;">
+            <h2>SIT IT Portal</h2>
+            <p>Proof of Concept: Microsoft OAuth2 Integration</p>
+            
+            <div id="errorMessage" class="error-msg"></div>
+            
+            <a href="http://localhost:3000/api/auth/microsoft" class="btn btn-microsoft">
+                Login with University Account
+            </a>
+        </div>
+
+        <div id="dashboardView" class="dashboard">
+            <h2 style="text-align: center;">🎉 Login Success!</h2>
+            <p style="text-align: center;">ข้อมูลที่แกะจาก JWT ของระบบเรา (หน้าบ้านทำเอง)</p>
+            
+            <div class="info-box">
+                <span class="label">STUDENT ID (รหัสนักศึกษา)</span>
+                <span class="value" id="dispStudentId">-</span>
+            </div>
+            <div class="info-box">
+                <span class="label">NAME (ชื่อ-สกุล)</span>
+                <span class="value" id="dispName">-</span>
+            </div>
+            <div class="info-box">
+                <span class="label">EMAIL</span>
+                <span class="value" id="dispEmail">-</span>
+            </div>
+            <div class="info-box">
+                <span class="label">ACCESS TOKEN (Secret Gooning!!)</span>
+                <span class="token-text" id="dispToken">...</span>
+            </div>
+
+            <hr>
+
+            <h3 style="font-size: 14px; margin-bottom: 5px;">Test Protected Route</h3>
+            <p style="font-size: 12px; margin-bottom: 15px; text-align: left;">จำลองการดึงข้อมูลจากระบบ โดยแนบ Token ไปให้ Middleware ตรวจสอบ</p>
+            
+            <button onclick="fetchSecureData()" class="btn fetch-btn">
+                🔍 Fetch ข้อมูลหลังบ้าน
+            </button>
+            <pre id="apiResult" class="success-box"></pre>
+
+            <button onclick="logout()" class="btn logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------
+        // ส่วนที่ 1: ฟังก์ชันแกะกล่อง JWT (ทำงานฝั่ง Frontend เพียวๆ)
+        // ---------------------------------------------------------
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ---------------------------------------------------------
+        // ส่วนที่ 2: เช็ก URL ตอนเปิดหน้าเว็บ (เพื่อรับ Token จาก Backend)
+        // ---------------------------------------------------------
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            const errorFromUrl = urlParams.get('error');
+
+            // 2.1 ถ้า Backend เตะกลับมาพร้อม Error
+            if (errorFromUrl) {
+                const errBox = document.getElementById('errorMessage');
+                errBox.innerText = `🚨 Error: ${errorFromUrl}`;
+                errBox.style.display = 'block';
+                window.history.replaceState({}, document.title, "/"); 
+                return;
+            }
+
+            // 2.2 ถ้า Backend เตะกลับมาพร้อม Token ให้เก็บลงเครื่อง
+            if (tokenFromUrl) {
+                localStorage.setItem('sit_access_token', tokenFromUrl);
+                window.history.replaceState({}, document.title, "/"); 
+            }
+
+            // 2.3 เช็กว่าในเครื่องมี Token ไหม ถ้ามีให้โชว์ Dashboard
+            const savedToken = localStorage.getItem('sit_access_token');
+            if (savedToken) {
+                const payload = parseJwt(savedToken);
+                if (payload) {
+                    document.getElementById('dispStudentId').innerText = payload.studentId || 'N/A';
+                    document.getElementById('dispName').innerText = payload.name || 'N/A';
+                    document.getElementById('dispEmail').innerText = payload.email || 'N/A';
+                    document.getElementById('dispToken').innerText = savedToken.substring(0, 40) + '...';
+
+                    document.getElementById('loginView').style.display = 'none';
+                    document.getElementById('dashboardView').style.display = 'block';
+                }
+            }
+        };
+
+        // ---------------------------------------------------------
+        // ส่วนที่ 3: ฟังก์ชันจำลองการยิง API แบบ SPA (Single Page App)
+        // ---------------------------------------------------------
+        async function fetchSecureData() {
+            const token = localStorage.getItem('sit_access_token');
+            const resultBox = document.getElementById('apiResult');
+            
+            try {
+                resultBox.style.display = 'block';
+                resultBox.style.color = "#fbbf24"; // สีเหลืองตอนกำลังโหลด
+                resultBox.innerText = "กำลังยิง API ไปที่ /api/auth/secure-data ...";
+
+                const response = await fetch('http://localhost:3000/api/auth/secure-data', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // 🚨 หัวใจหลัก: แนบ Token ให้ยามตรวจ
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultBox.style.color = "#10b981"; // สีเขียวตอนสำเร็จ
+                    resultBox.innerText = JSON.stringify(data, null, 2);
+                } else {
+                    // กรณียามตรวจแล้วไม่ผ่าน (เช่น บัตรหมดอายุ)
+                    resultBox.style.color = "#ef4444"; // สีแดง
+                    resultBox.innerText = `🚨 Access Denied (401/403):\n${JSON.stringify(data, null, 2)}`;
+                }
+
+            } catch (error) {
+                resultBox.style.color = "#ef4444";
+                resultBox.innerText = "🚨 Network Error: ไม่สามารถเชื่อมต่อกับ Backend ได้\nโปรดเช็กว่า Server Port 3000 รันอยู่หรือไม่";
+            }
+        }
+
+        // ---------------------------------------------------------
+        // ส่วนที่ 4: เคลียร์ค่าออกจากระบบ
+        // ---------------------------------------------------------
+        function logout() {
+            localStorage.removeItem('sit_access_token');
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

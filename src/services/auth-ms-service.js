@@ -8,11 +8,17 @@ export const microsoftLogin = async (authMSCode) => {
 
     const profile = await microsoftRepo.getMicrosoftProfile(msToken)
 
-    if(!profile.mail.endsWith('@ad.sit.kmutt.ac.th')) {
-        throw error.forbiddenError("Permission for SIT Student Only")
+    console.log(profile);
+
+    const studentId = profile.onPremisesSamAccountName;
+    console.log(`SID: ${studentId}`);
+
+    if(!profile.mail.endsWith('@kmutt.ac.th')) {
+        throw error.forbiddenError("Permission for KMUTT Student Only")
     }
 
     const payload = {
+        studentId: studentId,
         userId: profile.id,
         email: profile.mail,
         name: profile.displayName,
